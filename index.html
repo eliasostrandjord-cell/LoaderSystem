@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sonic CD Pocket</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sonic CD">
+<meta name="theme-color" content="#0b0f2a">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+:root{
+  --bg:#0b0f2a; --panel:#141a40; --ink:#f4f1e8; --dim:#9aa3d6; --accent:#ffcc1f; --line:#2a3270;
+  --btn:rgba(255,255,255,.14); --btnOn:rgba(255,204,31,.55); --btnLine:rgba(255,255,255,.35);
+  --ctl-op:1;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;overscroll-behavior:none}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit}
+
+#start{position:fixed;inset:0;background:radial-gradient(120% 90% at 50% 0%,#24307a 0%,var(--bg) 60%);display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));overflow:auto;touch-action:pan-y}
+.card{width:100%;max-width:460px;text-align:center}
+.logo{width:110px;height:110px;margin:0 auto 6px;display:block;border-radius:24px}
+h1{margin:0;font-size:30px;letter-spacing:.04em;font-weight:900;text-transform:uppercase;font-style:italic;
+  background:linear-gradient(180deg,#fff3b0,var(--accent) 55%,#ff8a1f);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--dim);margin:4px 0 22px;font-size:14px}
+.big{display:block;width:100%;padding:16px;border-radius:16px;border:0;background:var(--accent);color:#1a1300;font-weight:800;font-size:18px;margin:10px 0}
+.big.alt{background:var(--panel);color:var(--ink);border:1px solid var(--line);font-weight:700}
+.big:active{transform:scale(.98)}
+.check{display:flex;gap:10px;align-items:center;justify-content:center;color:var(--dim);font-size:14px;margin:8px 0}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+.help{margin-top:18px;text-align:left;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:13px;color:var(--dim)}
+.help b{color:var(--ink)}
+#status{min-height:22px;margin-top:10px;font-size:14px;color:var(--accent);white-space:pre-line}
+#status.err{color:#ff8b9b}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.foot{margin-top:14px;font-size:11px;color:#6b74a8}
+
+#game{position:fixed;inset:0;background:#000}
+#canvas{position:absolute;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges;background:#000}
+#canvas.smooth{image-rendering:auto}
+#touch{position:absolute;inset:0}
+
+.ctl{position:absolute;opacity:var(--ctl-op)}
+#dpad{width:168px;height:168px}
+#dpad .base{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,.07);border:2px solid var(--btnLine)}
+#dpad .arm{position:absolute;background:var(--btn);border:2px solid var(--btnLine);border-radius:10px}
+#dpad .h{left:14px;right:14px;top:58px;height:52px}
+#dpad .v{top:14px;bottom:14px;left:58px;width:52px}
+#dpad .hl{position:absolute;width:52px;height:52px;border-radius:12px;background:var(--btnOn);display:none}
+#dpad .knob{position:absolute;left:66px;top:66px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.25)}
+.btn{position:absolute;width:74px;height:74px;border-radius:50%;background:var(--btn);border:2px solid var(--btnLine);
+  display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;color:rgba(255,255,255,.85)}
+.btn.on{background:var(--btnOn);border-color:var(--accent)}
+#face{width:210px;height:170px}
+#bA{left:0;bottom:0}
+#bB{left:68px;bottom:44px;width:80px;height:80px}
+#bC{left:136px;bottom:88px}
+.pill{position:absolute;height:34px;padding:0 16px;border-radius:17px;background:rgba(255,255,255,.12);border:1.5px solid var(--btnLine);
+  font-size:13px;font-weight:800;letter-spacing:.08em;display:flex;align-items:center;color:rgba(255,255,255,.85)}
+.pill.on{background:var(--btnOn)}
+#toast{position:absolute;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);background:rgba(0,0,0,.75);padding:8px 14px;border-radius:12px;font-size:14px;pointer-events:none;transition:opacity .3s}
+
+#menu{position:fixed;inset:0;background:rgba(5,8,25,.9);display:flex;align-items:center;justify-content:center;padding:16px;touch-action:pan-y;overflow:auto;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+#menu .card{max-width:520px}
+#menu h2{margin:0 0 12px;font-size:22px;font-style:italic;text-transform:uppercase;color:var(--accent)}
+.lbl{text-align:left;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:12px}
+.row{display:flex;gap:8px;margin:8px 0}
+.row button{flex:1;padding:12px 6px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-weight:700;font-size:14px}
+.row button.sel{background:var(--accent);color:#1a1300;border-color:var(--accent)}
+.note{font-size:12px;color:var(--dim);text-align:left}
+</style>
+</head>
+<body>
+
+<div id="start">
+  <div class="card">
+    <img class="logo" src="icon-180.png" alt="">
+    <h1>Sonic CD Pocket</h1>
+    <div class="sub">The 2011 Sonic CD for iPhone · runs on your own game files</div>
+    <button class="big" id="resume" hidden>Play</button>
+    <button class="big" id="pick">Choose game file</button>
+    <input type="file" id="file" hidden>
+    <label class="check"><input type="checkbox" id="remember" checked> Remember the game on this iPhone</label>
+    <div id="status"></div>
+    <div class="bar" id="bar" hidden><i></i></div>
+    <div class="help">
+      <b>What to pick</b> (from the Files app), from a copy you own:<br>
+      • <b>Data.rsdk</b> from the Steam version (Steam → Sonic CD → Manage → Browse local files), or<br>
+      • the Android <b>.apk</b> of Sonic CD: the game data is taken out of it right here on the phone.<br><br>
+      <b>Best experience:</b> Share → <b>Add to Home Screen</b>, open it from there and turn the phone sideways.
+      Game controllers work too.
+    </div>
+    <div class="foot">Engine: RSDKv3 decompilation by Rubberduckycooly &amp; st×tic, original RSDK by Christian Whitehead.
+      Not affiliated with SEGA. No game data is included; your file stays on this device. Plus DLC disabled.</div>
+  </div>
+</div>
+
+<div id="game" hidden>
+  <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+  <div id="touch">
+    <div id="dpad" class="ctl"><div class="base"></div><div class="arm h"></div><div class="arm v"></div><div class="hl"></div><div class="knob"></div></div>
+    <div id="face" class="ctl"><div class="btn" id="bA">A</div><div class="btn" id="bB">B</div><div class="btn" id="bC">C</div></div>
+    <div class="pill ctl" id="bStart">START</div>
+    <div class="pill ctl" id="bMenu">☰ MENU</div>
+  </div>
+  <div id="toast" style="opacity:0"></div>
+</div>
+
+<div id="menu" hidden>
+  <div class="card">
+    <h2>Paused</h2>
+    <button class="big" id="mResume">Resume</button>
+    <div class="note">The game saves by itself, like the original (save files are kept on this iPhone).</div>
+    <div class="lbl">Screen</div>
+    <div class="row"><button data-opt="smooth" data-v="0">Sharp pixels</button><button data-opt="smooth" data-v="1">Smooth</button></div>
+    <div class="row"><button data-opt="width" data-v="424" data-restart="1">Widescreen</button><button data-opt="width" data-v="320" data-restart="1">Original 4:3</button></div>
+    <div class="lbl">Touch controls</div>
+    <div class="row"><button data-opt="size" data-v="0.85">Small</button><button data-opt="size" data-v="1">Normal</button><button data-opt="size" data-v="1.2">Large</button></div>
+    <div class="row"><button data-opt="op" data-v="0.45">Faint</button><button data-opt="op" data-v="1">Solid</button><button data-opt="op" data-v="0">Hidden</button></div>
+    <button class="big alt" id="mDisc">Change game file</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $ = function(id){ return document.getElementById(id); };
+// engine input bits: inputDevice[] order in the RSDK engine
+var PAD = {UP:1, DOWN:2, LEFT:4, RIGHT:8, A:16, B:32, C:64, START:128};
+
+var opts = {smooth:0, size:1, op:1, width:424};
+try { Object.assign(opts, JSON.parse(localStorage.getItem('cd_opts') || '{}')); } catch(e){}
+function saveOpts(){ try { localStorage.setItem('cd_opts', JSON.stringify(opts)); } catch(e){} }
+
+function status(s, err){ var el = $('status'); el.textContent = s; el.className = err ? 'err' : ''; }
+function progress(f){ var b = $('bar'); if (f == null) { b.hidden = true; return; } b.hidden = false; b.firstElementChild.style.width = Math.round(f * 100) + '%'; }
+
+// ---------- remembered game file (IndexedDB) ----------
+function idb(){ return new Promise(function(res, rej){
+  var r = indexedDB.open('cd_game', 1);
+  r.onupgradeneeded = function(){ r.result.createObjectStore('g'); };
+  r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); };
+}); }
+function gamePut(blob){ return idb().then(function(db){ return new Promise(function(res, rej){
+  var tx = db.transaction('g','readwrite'); tx.objectStore('g').put(blob, 'data');
+  tx.oncomplete = res; tx.onerror = function(){ rej(tx.error); }; tx.onabort = function(){ rej(tx.error); };
+}); }); }
+function gameGet(){ return idb().then(function(db){ return new Promise(function(res){
+  var r = db.transaction('g').objectStore('g').get('data'); r.onsuccess = function(){ res(r.result || null); }; r.onerror = function(){ res(null); };
+}); }).catch(function(){ return null; }); }
+
+// ---------- getting Data.rsdk out of an .apk / .zip, on the phone ----------
+function u32(v, o){ return v.getUint32(o, true); }
+function u16(v, o){ return v.getUint16(o, true); }
+async function readZipEntry(file){
+  var tailLen = Math.min(file.size, 65557 + 20);
+  var tail = new DataView(await file.slice(file.size - tailLen).arrayBuffer());
+  var eocd = -1;
+  for (var i = tail.byteLength - 22; i >= 0; i--) if (u32(tail, i) === 0x06054b50) { eocd = i; break; }
+  if (eocd < 0) throw new Error('That file is not a zip/apk.');
+  var count = u16(tail, eocd + 10), cdSize = u32(tail, eocd + 12), cdOff = u32(tail, eocd + 16);
+  if (cdOff === 0xffffffff || count === 0xffff) {   // zip64
+    var loc = eocd - 20;
+    if (loc >= 0 && u32(tail, loc) === 0x07064b50) {
+      var z64 = Number(tail.getBigUint64(loc + 8, true));
+      var zv = new DataView(await file.slice(z64, z64 + 56).arrayBuffer());
+      count = Number(zv.getBigUint64(32, true)); cdSize = Number(zv.getBigUint64(40, true)); cdOff = Number(zv.getBigUint64(48, true));
+    }
+  }
+  var cd = new DataView(await file.slice(cdOff, cdOff + cdSize).arrayBuffer());
+  var best = null, p = 0;
+  for (var n = 0; n < count && p + 46 <= cd.byteLength; n++) {
+    if (u32(cd, p) !== 0x02014b50) break;
+    var method = u16(cd, p + 10), csize = u32(cd, p + 20), usize = u32(cd, p + 24);
+    var nl = u16(cd, p + 28), xl = u16(cd, p + 30), cl = u16(cd, p + 32), lho = u32(cd, p + 42);
+    var name = new TextDecoder().decode(new Uint8Array(cd.buffer, p + 46, nl));
+    if (csize === 0xffffffff || usize === 0xffffffff || lho === 0xffffffff) {
+      var xp = p + 46 + nl, xe = xp + xl;
+      while (xp + 4 <= xe) {
+        var id = u16(cd, xp), sz = u16(cd, xp + 2), q = xp + 4;
+        if (id === 1) {
+          if (usize === 0xffffffff) { usize = Number(cd.getBigUint64(q, true)); q += 8; }
+          if (csize === 0xffffffff) { csize = Number(cd.getBigUint64(q, true)); q += 8; }
+          if (lho === 0xffffffff) { lho = Number(cd.getBigUint64(q, true)); q += 8; }
+        }
+        xp += 4 + sz;
+      }
+    }
+    var base = name.split('/').pop().toLowerCase();
+    if (/\.rsdk$/.test(base) && !/__macosx/i.test(name)) {
+      var score = (base === 'data.rsdk' ? 2 : 1) + (/assets\//i.test(name) ? 1 : 0);
+      if (!best || score > best.score) best = {name:name, method:method, csize:csize, usize:usize, lho:lho, score:score};
+    }
+    p += 46 + nl + xl + cl;
+  }
+  if (!best) throw new Error('No Data.rsdk inside that file. Pick the Sonic CD .apk or the Data.rsdk file.');
+  var lh = new DataView(await file.slice(best.lho, best.lho + 30).arrayBuffer());
+  var start = best.lho + 30 + u16(lh, 26) + u16(lh, 28);
+  var raw = file.slice(start, start + best.csize);
+  if (best.method === 0) return raw;
+  if (best.method !== 8) throw new Error('Unsupported compression in the zip.');
+  if (typeof DecompressionStream === 'undefined') throw new Error('This iOS version can\'t unzip here. Update iOS, or pick Data.rsdk directly.');
+  var stream = raw.stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  var reader = stream.getReader(), parts = [], got = 0;
+  for (;;) {
+    var r = await reader.read(); if (r.done) break;
+    parts.push(r.value); got += r.value.length;
+    progress(best.usize ? got / best.usize : 0);
+  }
+  return new Blob(parts);
+}
+
+async function fromPicked(file){
+  var name = file.name.toLowerCase();
+  if (/\.rsdk$/.test(name)) return file;
+  if (/\.(apk|zip|obb|xapk)$/.test(name) || true) {
+    status('Taking the game data out of ' + file.name + '…'); progress(0);
+    var b = await readZipEntry(file);
+    progress(null);
+    return b;
+  }
+}
+
+// ---------- engine ----------
+var engineLoaded = false, engineStarted = false;
+var Module = window.Module = {
+  canvas: $('canvas'),
+  print: function(t){ console.log(t); },
+  printErr: function(t){ console.warn(t); },
+  onRuntimeInitialized: function(){ engineLoaded = true; if (pendingBlob) { var b = pendingBlob; pendingBlob = null; startGame(b); } }
+};
+var pendingBlob = null;
+
+function settingsIni(){
+  return [
+    '[Dev]', 'DevMenu=false', 'EngineDebugMode=false', 'TxtScripts=false', 'StartingCategory=0', 'StartingScene=0', 'FastForwardSpeed=8',
+    'UseHQModes=true', 'DataFile=/data/Data.rsdk', '',
+    '[Game]', 'Language=0', 'GameType=0', 'OriginalControls=-1', 'DisableTouchControls=true', 'DisableFocusPause=0', '',
+    '[Window]', 'FullScreen=false', 'Borderless=false', 'VSync=false', 'ScalingMode=0', 'WindowScale=1', 'ScreenWidth=' + opts.width,
+    'RefreshRate=60', 'DimLimit=-1', 'HardwareRenderer=false', '',
+    '[Keyboard 1]', 'Up=82', 'Down=81', 'Left=80', 'Right=79', 'A=29', 'B=27', 'C=6', 'Start=40', ''
+  ].join('\n');
+}
+
+async function startGame(blob){
+  if (engineStarted) return;
+  if (!engineLoaded) { pendingBlob = blob; status('Loading the game engine…'); return; }
+  try {
+    status('Loading the game data…');
+    var data = new Uint8Array(await blob.arrayBuffer());
+    var head = String.fromCharCode(data[0], data[1], data[2], data[3]);
+    if (head !== 'RSDK') { status('That file is not Sonic CD game data (Data.rsdk).', true); return; }
+    var FS = Module.FS;
+    try { FS.mkdir('/data'); } catch(e){}
+    try { FS.unlink('/data/Data.rsdk'); } catch(e){}
+    FS.createDataFile('/data', 'Data.rsdk', data, true, false, true);
+    try { FS.mkdir('/save'); } catch(e){}
+    try { FS.mount(Module.IDBFS, {}, '/save'); } catch(e){}
+    await new Promise(function(res){ try { FS.syncfs(true, function(){ res(); }); } catch(e){ res(); } });
+    FS.chdir('/save');
+    FS.writeFile('/save/settings.ini', settingsIni());
+    if ($('remember').checked && blob !== remembered) {
+      gamePut(blob).catch(function(){ toast('Could not remember the game (storage full?)'); });
+    }
+    engineStarted = true;
+    $('start').hidden = true; $('game').hidden = false;
+    layout(); applyOpts();
+    try { Module.ccall('web_start', null, [], []); } catch(e){ if (e !== 'unwind' && !(e && e.name === 'ExitStatus')) console.warn(e); }
+    setInterval(saveNow, 4000);
+    setTimeout(function(){
+      var ok = 1; try { ok = Module._web_running(); } catch(e){}
+      if (!ok) { $('game').hidden = true; $('start').hidden = false; engineStarted = false;
+        status('The game data could not be started. Make sure it is Data.rsdk from Sonic CD (2011).', true);
+        $('pick').onclick = function(){ location.reload(); }; $('pick').textContent = 'Try again'; }
+    }, 2500);
+    setTimeout(layout, 100);
+    try { screen.orientation.lock('landscape').catch(function(){}); } catch(e){}
+  } catch(e){
+    status('Could not start: ' + (e && e.message || e), true);
+  }
+}
+function saveNow(){ try { Module.FS.syncfs(false, function(){}); } catch(e){} }
+document.addEventListener('visibilitychange', function(){ if (document.hidden && engineStarted) { saveNow(); openMenu(); } });
+
+var s = document.createElement('script'); s.src = 'engine.js';
+s.onerror = function(){ status('The game engine failed to download.', true); };
+document.body.appendChild(s);
+
+// ---------- start screen ----------
+var remembered = null;
+$('pick').onclick = function(){ unlockAudio(); $('file').click(); };
+$('file').onchange = async function(){
+  var f = this.files && this.files[0]; this.value = '';
+  if (!f) return;
+  try { var b = await fromPicked(f); startGame(b); }
+  catch(e){ progress(null); status(e.message || String(e), true); }
+};
+gameGet().then(function(b){
+  if (!b) return;
+  remembered = b;
+  $('resume').hidden = false; $('resume').textContent = 'Play Sonic CD';
+  $('pick').classList.add('alt'); $('pick').textContent = 'Choose a different game file';
+  $('resume').onclick = function(){ unlockAudio(); startGame(b); };
+});
+
+// ---------- audio: iOS only starts sound after a tap ----------
+function unlockAudio(){
+  try { var ac = Module.SDL2 && Module.SDL2.audioContext; if (ac && ac.state !== 'running') ac.resume(); } catch(e){}
+}
+
+// ---------- touch controls ----------
+var touchPad = 0, gpPad = 0, sentPad = -1;
+function sendPad(){
+  var m = touchPad | gpPad;
+  if (m !== sentPad && engineStarted) { sentPad = m; try { Module._web_set_pad(m); } catch(e){} }
+}
+var dpad = $('dpad'), hl = dpad.querySelector('.hl'), knob = dpad.querySelector('.knob');
+var touches = {};
+function dpadMask(x, y){
+  var r = dpad.getBoundingClientRect(), dx = x - (r.left + r.width/2), dy = y - (r.top + r.height/2);
+  if (Math.hypot(dx, dy) < r.width * 0.12) return 0;
+  var a = Math.atan2(dy, dx) * 180 / Math.PI, m = 0;
+  if (a > -67.5 && a < 67.5) m |= PAD.RIGHT;
+  if (a > 112.5 || a < -112.5) m |= PAD.LEFT;
+  if (a > 22.5 && a < 157.5) m |= PAD.DOWN;
+  if (a < -22.5 && a > -157.5) m |= PAD.UP;
+  return m;
+}
+var faceBtns = [['bA',PAD.A],['bB',PAD.B],['bC',PAD.C]];
+function faceMask(x, y){
+  var m = 0, best = null, bd = 1e9;
+  faceBtns.forEach(function(b){
+    var r = $(b[0]).getBoundingClientRect(), d = Math.hypot(x - (r.left + r.width/2), y - (r.top + r.height/2));
+    if (d < r.width * 0.62) m |= b[1];
+    if (d < bd) { bd = d; best = b; }
+  });
+  if (!m && best && bd < 150 * opts.size) m = best[1];   // the whole right side jumps
+  return m;
+}
+function classify(x, y){
+  var el = document.elementFromPoint(x, y);
+  if (el && el.id === 'bStart') return 'start';
+  if (el && el.id === 'bMenu') return 'menu';
+  return x < window.innerWidth / 2 ? 'dpad' : 'face';
+}
+function refresh(){
+  var m = 0, dm = 0, start = false, dt = null;
+  for (var id in touches) {
+    var t = touches[id];
+    if (t.kind === 'dpad') { dm |= dpadMask(t.x, t.y); dt = t; }
+    else if (t.kind === 'face') m |= faceMask(t.x, t.y);
+    else if (t.kind === 'start') start = true;
+  }
+  touchPad = m | dm | (start ? PAD.START : 0);
+  sendPad();
+  faceBtns.forEach(function(b){ $(b[0]).classList.toggle('on', !!(touchPad & b[1])); });
+  $('bStart').classList.toggle('on', start);
+  var r = dpad.getBoundingClientRect();
+  if (dt) {
+    var kx = Math.max(-1, Math.min(1, (dt.x - (r.left + r.width/2)) / (r.width/2)));
+    var ky = Math.max(-1, Math.min(1, (dt.y - (r.top + r.height/2)) / (r.height/2)));
+    knob.style.transform = 'translate(' + (kx * 50) + 'px,' + (ky * 50) + 'px)';
+  } else knob.style.transform = '';
+  if (dm) {
+    hl.style.display = 'block';
+    hl.style.left = ((dm & PAD.LEFT) ? 6 : (dm & PAD.RIGHT) ? 110 : 58) + 'px';
+    hl.style.top = ((dm & PAD.UP) ? 6 : (dm & PAD.DOWN) ? 110 : 58) + 'px';
+  } else hl.style.display = 'none';
+}
+var T = $('touch');
+T.addEventListener('touchstart', function(e){
+  e.preventDefault(); unlockAudio();
+  for (var i = 0; i < e.changedTouches.length; i++) {
+    var t = e.changedTouches[i], k = classify(t.clientX, t.clientY);
+    if (k === 'menu') { openMenu(); continue; }
+    touches[t.identifier] = {kind:k, x:t.clientX, y:t.clientY};
+  }
+  refresh();
+}, {passive:false});
+T.addEventListener('touchmove', function(e){
+  e.preventDefault();
+  for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i], o = touches[t.identifier]; if (o) { o.x = t.clientX; o.y = t.clientY; } }
+  refresh();
+}, {passive:false});
+function tend(e){ e.preventDefault(); for (var i = 0; i < e.changedTouches.length; i++) delete touches[e.changedTouches[i].identifier]; refresh(); }
+T.addEventListener('touchend', tend, {passive:false});
+T.addEventListener('touchcancel', tend, {passive:false});
+T.addEventListener('mousedown', function(e){ var k = classify(e.clientX, e.clientY); if (k === 'menu') { openMenu(); return; } touches.m = {kind:k, x:e.clientX, y:e.clientY}; refresh(); });
+window.addEventListener('mousemove', function(e){ if (touches.m) { touches.m.x = e.clientX; touches.m.y = e.clientY; refresh(); } });
+window.addEventListener('mouseup', function(){ if (touches.m) { delete touches.m; refresh(); } });
+document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
+window.addEventListener('keydown', function(e){ if (e.code === 'Escape' && engineStarted) { $('menu').hidden ? openMenu() : closeMenu(); } });
+
+// game controllers (MFi, Xbox, PlayStation)
+var gpMenuHeld = false;
+function pollPads(){
+  requestAnimationFrame(pollPads);
+  var pads; try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch(e){ return; }
+  var m = 0, menu = false;
+  for (var i = 0; i < (pads ? pads.length : 0); i++) {
+    var p = pads[i]; if (!p) continue;
+    var b = function(k){ return p.buttons[k] && p.buttons[k].pressed; };
+    var ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+    if (b(12) || ay < -0.5) m |= PAD.UP;
+    if (b(13) || ay > 0.5) m |= PAD.DOWN;
+    if (b(14) || ax < -0.5) m |= PAD.LEFT;
+    if (b(15) || ax > 0.5) m |= PAD.RIGHT;
+    if (b(0)) m |= PAD.A;
+    if (b(1)) m |= PAD.B;
+    if (b(2) || b(3)) m |= PAD.C;
+    if (b(9)) m |= PAD.START;
+    if (b(8)) menu = true;
+  }
+  if (m !== gpPad) { gpPad = m; sendPad(); }
+  if (menu && !gpMenuHeld && engineStarted) { $('menu').hidden ? openMenu() : closeMenu(); }
+  gpMenuHeld = menu;
+}
+requestAnimationFrame(pollPads);
+
+// ---------- layout ----------
+function layout(){
+  var W = window.innerWidth, H = window.innerHeight, land = W > H, sz = opts.size;
+  var cv = $('canvas'), gw = opts.width, gh = 240, ar = gw / gh;
+  var insL = 0, insR = 0, insB = 0, insT = 0;
+  try {
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;left:env(safe-area-inset-left);right:env(safe-area-inset-right);top:env(safe-area-inset-top);bottom:env(safe-area-inset-bottom);visibility:hidden';
+    document.body.appendChild(probe); var r = probe.getBoundingClientRect();
+    insL = r.left; insT = r.top; insR = W - r.right; insB = H - r.bottom; probe.remove();
+  } catch(e){}
+  var face = $('face'), st = $('bStart'), mn = $('bMenu');
+  dpad.style.transformOrigin = face.style.transformOrigin = 'left top';
+  dpad.style.transform = face.style.transform = 'scale(' + sz + ')';
+  var dw = 168 * sz, fw = 210 * sz, fh = 170 * sz, pad = 16, sw, sh, sx, sy;
+  if (land) {
+    sh = H; sw = sh * ar; if (sw > W) { sw = W; sh = sw / ar; }
+    sx = (W - sw) / 2; sy = (H - sh) / 2;
+    dpad.style.left = (insL + pad) + 'px'; dpad.style.top = (H - insB - pad - dw) + 'px';
+    face.style.left = (W - insR - pad - fw) + 'px'; face.style.top = (H - insB - pad - fh) + 'px';
+    st.style.left = (W / 2 - 42) + 'px'; st.style.top = (H - insB - 44) + 'px';
+    mn.style.left = (insL + pad) + 'px'; mn.style.top = (insT + 10) + 'px';
+  } else {
+    sw = W; sh = sw / ar; sx = 0; sy = insT + 6;
+    var top = sy + sh, bottom = H - insB, mid = top + (bottom - top) * 0.52;
+    dpad.style.left = pad + 'px'; dpad.style.top = Math.min(bottom - 60 - dw, mid - dw / 2) + 'px';
+    face.style.left = (W - pad - fw) + 'px'; face.style.top = Math.min(bottom - 60 - fh, mid - fh / 2) + 'px';
+    st.style.left = (W / 2 - 42) + 'px'; st.style.top = (bottom - 48) + 'px';
+    mn.style.left = (W / 2 - 50) + 'px'; mn.style.top = (top + 14) + 'px';
+  }
+  cv.style.setProperty('left', sx + 'px', 'important'); cv.style.setProperty('top', sy + 'px', 'important');
+  cv.style.setProperty('width', sw + 'px', 'important'); cv.style.setProperty('height', sh + 'px', 'important');
+}
+window.addEventListener('resize', function(){ setTimeout(layout, 50); });
+window.addEventListener('orientationchange', function(){ setTimeout(layout, 300); });
+
+// ---------- menu ----------
+function openMenu(){
+  if (!engineStarted || !$('menu').hidden) return;
+  touches = {}; refresh();
+  try { Module.pauseMainLoop(); } catch(e){}
+  try { var ac = Module.SDL2 && Module.SDL2.audioContext; if (ac) ac.suspend(); } catch(e){}
+  $('menu').hidden = false; markOpts();
+}
+function closeMenu(){
+  $('menu').hidden = true;
+  try { var ac = Module.SDL2 && Module.SDL2.audioContext; if (ac) ac.resume(); } catch(e){}
+  try { Module.resumeMainLoop(); } catch(e){}
+}
+$('mResume').onclick = closeMenu;
+$('mDisc').onclick = function(){ saveNow(); setTimeout(function(){ location.reload(); }, 300); };
+$('menu').addEventListener('click', function(e){
+  var b = e.target.closest('button[data-opt]'); if (!b) return;
+  var was = opts[b.dataset.opt];
+  opts[b.dataset.opt] = +b.dataset.v; saveOpts(); applyOpts(); markOpts();
+  if (b.dataset.restart && was !== opts[b.dataset.opt]) { toast('Restarting with the new screen size…'); saveNow(); setTimeout(function(){ location.reload(); }, 700); }
+});
+function markOpts(){ document.querySelectorAll('#menu [data-opt]').forEach(function(b){ b.classList.toggle('sel', opts[b.dataset.opt] === +b.dataset.v); }); }
+function applyOpts(){
+  document.documentElement.style.setProperty('--ctl-op', opts.op);
+  $('canvas').classList.toggle('smooth', !!opts.smooth);
+  layout();
+}
+var toastT = 0;
+function toast(s){ var t = $('toast'); t.textContent = s; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(function(){ t.style.opacity = 0; }, 1800); }
+
+if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function(){}); } catch(e){} }
+})();
+</script>
+</body>
+</html>
